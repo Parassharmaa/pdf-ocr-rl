@@ -90,7 +90,7 @@ class TestReadingOrder:
 
 class TestCompositeReward:
     def test_perfect_match(self):
-        md = "# Title\n\n## Section\n\nSome content here.\n\n- item 1\n- item 2"
+        md = "# Title\n\n## Section\n\nSome content here with enough text to match.\n\nAnother paragraph with substantial content for matching.\n\n- item 1\n- item 2"
         score = composite_reward(md, md)
         assert score > 0.9
 
