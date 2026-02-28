@@ -13,66 +13,12 @@ import sys
 from pathlib import Path
 
 import yaml
+from PIL import Image
 
 
 def load_config(config_path: str) -> dict:
     with open(config_path) as f:
         return yaml.safe_load(f)
-
-
-def build_dataset(config: dict):
-    """Load the image-markdown dataset for GRPO training."""
-    from datasets import Dataset, Features, Image, Value
-
-    data_dir = Path(config["data"]["train_dir"])
-    meta_path = data_dir / "dataset_meta.json"
-
-    if not meta_path.exists():
-        print(f"Error: No dataset found at {meta_path}")
-        print("Run: python scripts/create_dataset.py first")
-        sys.exit(1)
-
-    meta = json.loads(meta_path.read_text())
-
-    records = []
-    languages = config["data"].get("languages", ["en", "ja"])
-    max_samples = config["data"].get("max_train_samples", 500)
-
-    for entry in meta:
-        img_path = entry["image_path"]
-        md_source = entry["source"]
-        lang = entry.get("language", "en")
-
-        if lang not in languages:
-            continue
-        if not Path(img_path).exists() or not Path(md_source).exists():
-            continue
-
-        md_content = Path(md_source).read_text(encoding="utf-8")
-
-        # Format as conversation for Qwen2.5-VL
-        prompt = _format_prompt(lang)
-
-        records.append({
-            "image": img_path,
-            "prompt": prompt,
-            "reference": md_content,
-            "language": lang,
-        })
-
-        if len(records) >= max_samples:
-            break
-
-    features = Features({
-        "image": Image(),
-        "prompt": Value("string"),
-        "reference": Value("string"),
-        "language": Value("string"),
-    })
-
-    ds = Dataset.from_list(records, features=features)
-    print(f"Loaded {len(ds)} training samples")
-    return ds
 
 
 def _format_prompt(language: str) -> str:
@@ -89,30 +35,102 @@ def _format_prompt(language: str) -> str:
     )
 
 
+def build_dataset(config: dict):
+    """Load the image-markdown dataset in Unsloth Vision GRPO format.
+
+    Format expected by TRL GRPOTrainer:
+    {
+        "prompt": [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": "..."}]}],
+        "image": [PIL.Image],
+        "answer": "ground truth markdown"
+    }
+    """
+    from datasets import Dataset
+
+    data_dir = Path(config["data"]["train_dir"])
+    meta_path = data_dir / "dataset_meta.json"
+
+    if not meta_path.exists():
+        print(f"Error: No dataset found at {meta_path}")
+        print("Run: python scripts/create_dataset.py first")
+        sys.exit(1)
+
+    meta = json.loads(meta_path.read_text())
+    languages = config["data"].get("languages", ["en", "ja"])
+    max_samples = config["data"].get("max_train_samples", 500)
+
+    records = []
+    for entry in meta:
+        img_path = entry["image_path"]
+        md_source = entry["source"]
+        lang = entry.get("language", "en")
+
+        if lang not in languages:
+            continue
+        if not Path(img_path).exists() or not Path(md_source).exists():
+            continue
+
+        md_content = Path(md_source).read_text(encoding="utf-8")
+        prompt_text = _format_prompt(lang)
+
+        # Format as chat messages for Qwen2.5-VL
+        prompt = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image"},
+                    {"type": "text", "text": prompt_text},
+                ],
+            }
+        ]
+
+        records.append({
+            "prompt": prompt,
+            "image": Image.open(img_path).convert("RGB"),
+            "answer": md_content,
+            "language": lang,
+        })
+
+        if len(records) >= max_samples:
+            break
+
+    ds = Dataset.from_list(records)
+    print(f"Loaded {len(ds)} training samples")
+    return ds
+
+
 def create_reward_fn(config: dict):
-    """Create the composite reward function for GRPO."""
+    """Create the composite reward function for GRPO.
+
+    The reward function signature for TRL GRPOTrainer:
+        reward_fn(completions, **kwargs) -> list[float]
+
+    where `completions` is a list of generated strings, and
+    kwargs contains additional fields from the dataset (like `answer`).
+    """
     from pdf_ocr_rl.reward.composite import composite_reward
 
     weights = config.get("reward", {}).get("weights", None)
 
-    def reward_fn(completions, reference, **kwargs):
-        """Compute rewards for a batch of completions.
+    def reward_fn(completions, answer, **kwargs):
+        """Compute rewards for GRPO completions.
 
         Args:
             completions: List of generated markdown strings
-            reference: Ground-truth markdown string
+            answer: List of ground-truth markdown strings (from dataset)
 
         Returns:
             List of float rewards
         """
         rewards = []
-        for completion in completions:
-            # Extract text from completion (strip any special tokens)
+        for i, completion in enumerate(completions):
             text = completion
             if isinstance(completion, dict):
                 text = completion.get("content", completion.get("text", str(completion)))
 
-            r = composite_reward(text, reference, weights=weights)
+            # Get the reference for this sample
+            ref = answer[i] if isinstance(answer, list) else answer
+            r = composite_reward(text, ref, weights=weights)
             rewards.append(r)
         return rewards
 
@@ -134,16 +152,29 @@ def main():
     print(f"Max steps: {config['grpo']['max_steps']}")
     print()
 
-    # Load model
+    # Load model with Unsloth
     print("Loading model with Unsloth...")
-    from pdf_ocr_rl.models.loader import load_model_for_training
+    from unsloth import FastVisionModel
 
-    model, tokenizer = load_model_for_training(
-        model_name=config["model"]["name"],
+    model, tokenizer = FastVisionModel.from_pretrained(
+        config["model"]["name"],
         max_seq_length=config["model"]["max_seq_length"],
-        lora_r=config["lora"]["r"],
-        lora_alpha=config["lora"]["alpha"],
         load_in_4bit=config["model"]["load_in_4bit"],
+        dtype=None,
+    )
+
+    model = FastVisionModel.get_peft_model(
+        model,
+        finetune_vision_layers=True,
+        finetune_language_layers=True,
+        finetune_attention_modules=True,
+        finetune_mlp_modules=True,
+        r=config["lora"]["r"],
+        lora_alpha=config["lora"]["alpha"],
+        lora_dropout=0,
+        bias="none",
+        random_state=42,
+        use_rslora=False,
     )
     print("Model loaded successfully!")
 
@@ -165,6 +196,7 @@ def main():
         output_dir=output_dir,
         num_generations=config["grpo"]["num_generations"],
         max_completion_length=config["grpo"]["max_completion_length"],
+        max_prompt_length=1024,
         learning_rate=config["grpo"]["learning_rate"],
         num_train_epochs=config["grpo"]["num_train_epochs"],
         per_device_train_batch_size=config["grpo"]["per_device_train_batch_size"],
@@ -178,42 +210,18 @@ def main():
         save_steps=config["grpo"]["save_steps"],
         max_steps=config["grpo"]["max_steps"],
         report_to="none",
+        # GSPO improvement over GRPO
+        importance_sampling_level="sequence",
+        loss_type="dr_grpo",
+        use_gradient_checkpointing="unsloth",
     )
-
-    # Format dataset for GRPO trainer
-    def format_for_grpo(example):
-        """Format a dataset example for the GRPO trainer."""
-        from qwen_vl_utils import process_vision_info
-
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": example["image"]},
-                    {"type": "text", "text": example["prompt"]},
-                ],
-            }
-        ]
-
-        text = tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-        image_inputs, _ = process_vision_info(messages)
-
-        return {
-            "prompt": text,
-            "image_inputs": image_inputs,
-            "reference": example["reference"],
-        }
-
-    formatted_dataset = dataset.map(format_for_grpo, remove_columns=dataset.column_names)
 
     trainer = GRPOTrainer(
         model=model,
-        config=grpo_config,
-        train_dataset=formatted_dataset,
-        reward_funcs=reward_fn,
-        tokenizer=tokenizer,
+        reward_funcs=[reward_fn],
+        args=grpo_config,
+        train_dataset=dataset,
+        processing_class=tokenizer,
     )
 
     print("\nStarting GRPO training...")

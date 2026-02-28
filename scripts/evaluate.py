@@ -6,11 +6,14 @@ Usage:
 """
 
 import argparse
+import gc
 import json
 import time
 from pathlib import Path
 
+import torch
 import yaml
+from PIL import Image
 
 
 def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
@@ -38,27 +41,31 @@ def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
 
 
 def run_inference(model, tokenizer, image_path: str, language: str = "en") -> str:
-    """Run inference on a single image."""
-    from PIL import Image
-    from qwen_vl_utils import process_vision_info
-
+    """Run inference on a single image using Unsloth."""
     prompt = (
         "この画像はPDFドキュメントのページです。画像の内容を正確にMarkdown形式に変換してください。"
         if language == "ja"
         else "This image is a page from a PDF document. Convert the content accurately to Markdown format."
     )
 
+    image = Image.open(image_path).convert("RGB")
+
     messages = [
         {
             "role": "user",
             "content": [
-                {"type": "image", "image": Image.open(image_path).convert("RGB")},
+                {"type": "image", "image": image},
                 {"type": "text", "text": prompt},
             ],
         }
     ]
 
-    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    text = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
+
+    from qwen_vl_utils import process_vision_info
+
     image_inputs, _ = process_vision_info(messages)
 
     inputs = tokenizer(
@@ -68,14 +75,14 @@ def run_inference(model, tokenizer, image_path: str, language: str = "en") -> st
         padding=True,
     ).to(model.device)
 
-    output_ids = model.generate(
-        **inputs,
-        max_new_tokens=1024,
-        temperature=0.1,
-        do_sample=False,
-    )
+    with torch.no_grad():
+        output_ids = model.generate(
+            **inputs,
+            max_new_tokens=1024,
+            temperature=0.1,
+            do_sample=False,
+        )
 
-    # Decode only the generated part
     generated = tokenizer.decode(
         output_ids[0][inputs["input_ids"].shape[1]:],
         skip_special_tokens=True,
@@ -94,25 +101,34 @@ def evaluate_model(model, tokenizer, test_data: list[dict], model_name: str) -> 
     start_time = time.time()
 
     for i, sample in enumerate(test_data):
-        predicted = run_inference(model, tokenizer, sample["image_path"], sample["language"])
-        metrics = evaluate_sample(predicted, sample["markdown"])
-        metrics["language"] = sample["language"]
-        all_metrics.append(metrics)
+        try:
+            predicted = run_inference(model, tokenizer, sample["image_path"], sample["language"])
+            metrics = evaluate_sample(predicted, sample["markdown"])
+            metrics["language"] = sample["language"]
+            all_metrics.append(metrics)
 
-        results["samples"].append({
-            "image": sample["image_path"],
-            "language": sample["language"],
-            "metrics": metrics,
-            "predicted_length": len(predicted),
-            "reference_length": len(sample["markdown"]),
-        })
+            results["samples"].append({
+                "image": sample["image_path"],
+                "language": sample["language"],
+                "metrics": metrics,
+                "predicted_length": len(predicted),
+                "reference_length": len(sample["markdown"]),
+            })
+        except Exception as e:
+            print(f"  Error on sample {i}: {e}")
+            continue
 
         if (i + 1) % 10 == 0:
-            print(f"  Processed {i + 1}/{len(test_data)}...")
+            elapsed = time.time() - start_time
+            print(f"  Processed {i + 1}/{len(test_data)} ({elapsed:.1f}s)...")
 
     elapsed = time.time() - start_time
     results["total_time_seconds"] = elapsed
-    results["avg_time_per_sample"] = elapsed / len(test_data)
+    results["avg_time_per_sample"] = elapsed / max(len(all_metrics), 1)
+
+    if not all_metrics:
+        print("  No samples evaluated successfully!")
+        return results
 
     # Aggregate metrics
     metric_keys = [k for k in all_metrics[0] if k != "language"]
@@ -138,12 +154,6 @@ def print_comparison(base_results: dict | None, finetuned_results: dict | None):
     print("EVALUATION RESULTS COMPARISON")
     print("=" * 80)
 
-    headers = ["Metric", "Base Model", "Fine-tuned", "Delta"]
-    if not finetuned_results:
-        headers = ["Metric", "Base Model"]
-    if not base_results:
-        headers = ["Metric", "Fine-tuned"]
-
     def _print_metrics(label: str, base: dict | None, ft: dict | None):
         print(f"\n--- {label} ---")
         print(f"{'Metric':<30} ", end="")
@@ -161,8 +171,8 @@ def print_comparison(base_results: dict | None, finetuned_results: dict | None):
             if key == "count":
                 continue
             print(f"{key:<30} ", end="")
-            bv = base[key] if base else None
-            fv = ft[key] if ft else None
+            bv = base.get(key) if base else None
+            fv = ft.get(key) if ft else None
             if bv is not None:
                 print(f"{bv:>10.4f} ", end="")
             if fv is not None:
@@ -173,15 +183,13 @@ def print_comparison(base_results: dict | None, finetuned_results: dict | None):
                 print(f"{sign}{delta:>9.4f}", end="")
             print()
 
-    # Overall
-    bo = base_results["overall"] if base_results else None
-    fo = finetuned_results["overall"] if finetuned_results else None
+    bo = base_results.get("overall") if base_results else None
+    fo = finetuned_results.get("overall") if finetuned_results else None
     _print_metrics("Overall", bo, fo)
 
-    # By language
     for lang in ["en", "ja"]:
-        bl = base_results["metrics_by_language"].get(lang) if base_results else None
-        fl = finetuned_results["metrics_by_language"].get(lang) if finetuned_results else None
+        bl = base_results.get("metrics_by_language", {}).get(lang) if base_results else None
+        fl = finetuned_results.get("metrics_by_language", {}).get(lang) if finetuned_results else None
         if bl or fl:
             _print_metrics(f"Language: {lang.upper()}", bl, fl)
 
@@ -197,7 +205,7 @@ def main():
     args = parser.parse_args()
 
     config = yaml.safe_load(Path(args.config).read_text())
-    base_model_name = config["model"]["name"].replace("unsloth/", "")
+    base_model_name = config["model"]["name"]
 
     # Load test data
     test_data = load_test_data(args.data_dir, args.max_samples)
@@ -206,44 +214,41 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    from unsloth import FastVisionModel
+
     base_results = None
     finetuned_results = None
 
     # Evaluate base model
     print("\n--- Evaluating BASE model ---")
-    from pdf_ocr_rl.models.loader import load_base_model_for_inference
-
-    base_model, base_tokenizer = load_base_model_for_inference(
-        model_name=f"Qwen/{base_model_name}",
+    base_model, base_tokenizer = FastVisionModel.from_pretrained(
+        base_model_name,
+        max_seq_length=config["model"]["max_seq_length"],
+        load_in_4bit=True,
     )
+    FastVisionModel.for_inference(base_model)
     base_results = evaluate_model(base_model, base_tokenizer, test_data, f"Base ({base_model_name})")
     (output_dir / "base_results.json").write_text(json.dumps(base_results, indent=2, default=str))
 
-    # Free memory
     del base_model, base_tokenizer
-    import gc
-
-    import torch
     gc.collect()
     torch.cuda.empty_cache()
 
     # Evaluate fine-tuned model
     if not args.base_only and args.model_path:
         print("\n--- Evaluating FINE-TUNED model ---")
-        from pdf_ocr_rl.models.loader import load_model_for_inference
-
-        ft_model, ft_tokenizer = load_model_for_inference(args.model_path)
+        ft_model, ft_tokenizer = FastVisionModel.from_pretrained(
+            args.model_path,
+            max_seq_length=config["model"]["max_seq_length"],
+            load_in_4bit=True,
+        )
+        FastVisionModel.for_inference(ft_model)
         finetuned_results = evaluate_model(ft_model, ft_tokenizer, test_data, f"Fine-tuned ({args.model_path})")
         (output_dir / "finetuned_results.json").write_text(json.dumps(finetuned_results, indent=2, default=str))
 
-    # Print comparison
     print_comparison(base_results, finetuned_results)
 
-    # Save comparison
-    comparison = {
-        "base": base_results,
-        "finetuned": finetuned_results,
-    }
+    comparison = {"base": base_results, "finetuned": finetuned_results}
     (output_dir / "comparison.json").write_text(json.dumps(comparison, indent=2, default=str))
     print(f"\nResults saved to {output_dir}")
 

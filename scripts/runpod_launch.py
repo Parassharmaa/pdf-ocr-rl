@@ -197,18 +197,12 @@ def get_pods():
                 }
                 costPerHr
             }
-            spending {
-                totalSpend
-            }
         }
     }
     """
     data = graphql_request(query)
     myself = data.get("myself", {})
     pods = myself.get("pods", [])
-    spending = myself.get("spending", {})
-
-    print(f"\nTotal spending: ${spending.get('totalSpend', 0):.2f}")
     print(f"\nActive pods ({len(pods)}):")
 
     for pod in pods:
