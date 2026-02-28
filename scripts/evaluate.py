@@ -40,8 +40,8 @@ def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
     return samples
 
 
-def run_inference(model, tokenizer, image_path: str, language: str = "en") -> str:
-    """Run inference on a single image using Unsloth."""
+def run_inference(model, tokenizer, processor, image_path: str, language: str = "en") -> str:
+    """Run inference on a single image."""
     prompt = (
         "この画像はPDFドキュメントのページです。画像の内容を正確にMarkdown形式に変換してください。"
         if language == "ja"
@@ -60,48 +60,27 @@ def run_inference(model, tokenizer, image_path: str, language: str = "en") -> st
         }
     ]
 
-    text = tokenizer.apply_chat_template(
+    # Use processor.apply_chat_template to get text with image tokens
+    text = processor.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
 
     from qwen_vl_utils import process_vision_info
-
     image_inputs, video_inputs = process_vision_info(messages)
 
-    # Use the processor (not tokenizer) for vision models
-    # Unsloth patches the processor, so we get it from the model
-    try:
-        from transformers import AutoProcessor
-        processor = AutoProcessor.from_pretrained(
-            "unsloth/Qwen2.5-VL-3B-Instruct",
-            trust_remote_code=True,
-        )
-        inputs = processor(
-            text=[text],
-            images=image_inputs,
-            videos=video_inputs,
-            return_tensors="pt",
-            padding=True,
-        ).to(model.device)
-    except Exception:
-        # Fallback: pass images directly through tokenizer without keyword
-        inputs = tokenizer(
-            text,
-            return_tensors="pt",
-            padding=True,
-        ).to(model.device)
-        # Manually add pixel values
-        from transformers import Qwen2VLImageProcessor
-        img_processor = Qwen2VLImageProcessor()
-        img_inputs = img_processor(images=image_inputs, return_tensors="pt")
-        for k, v in img_inputs.items():
-            inputs[k] = v.to(model.device)
+    # Use processor directly (not tokenizer) to avoid Unsloth patch conflicts
+    inputs = processor(
+        text=[text],
+        images=image_inputs,
+        videos=video_inputs,
+        return_tensors="pt",
+        padding=True,
+    ).to(model.device)
 
     with torch.no_grad():
         output_ids = model.generate(
             **inputs,
             max_new_tokens=1024,
-            temperature=0.1,
             do_sample=False,
         )
 
@@ -112,7 +91,7 @@ def run_inference(model, tokenizer, image_path: str, language: str = "en") -> st
     return generated.strip()
 
 
-def evaluate_model(model, tokenizer, test_data: list[dict], model_name: str) -> dict:
+def evaluate_model(model, tokenizer, processor, test_data: list[dict], model_name: str) -> dict:
     """Evaluate a model on test data and return metrics."""
     from pdf_ocr_rl.eval.metrics import evaluate_sample
 
@@ -124,7 +103,7 @@ def evaluate_model(model, tokenizer, test_data: list[dict], model_name: str) -> 
 
     for i, sample in enumerate(test_data):
         try:
-            predicted = run_inference(model, tokenizer, sample["image_path"], sample["language"])
+            predicted = run_inference(model, tokenizer, processor, sample["image_path"], sample["language"])
             metrics = evaluate_sample(predicted, sample["markdown"])
             metrics["language"] = sample["language"]
             all_metrics.append(metrics)
@@ -138,11 +117,14 @@ def evaluate_model(model, tokenizer, test_data: list[dict], model_name: str) -> 
             })
         except Exception as e:
             print(f"  Error on sample {i}: {e}")
+            import traceback
+            traceback.print_exc()
             continue
 
-        if (i + 1) % 10 == 0:
+        if (i + 1) % 5 == 0:
             elapsed = time.time() - start_time
-            print(f"  Processed {i + 1}/{len(test_data)} ({elapsed:.1f}s)...")
+            avg = sum(m.get("composite", 0) for m in all_metrics) / len(all_metrics) if all_metrics else 0
+            print(f"  Processed {i + 1}/{len(test_data)} ({elapsed:.1f}s, avg composite: {avg:.4f})...")
 
     elapsed = time.time() - start_time
     results["total_time_seconds"] = elapsed
@@ -221,7 +203,7 @@ def main():
     parser.add_argument("--model-path", type=str, help="Path to fine-tuned model")
     parser.add_argument("--base-only", action="store_true", help="Only evaluate base model")
     parser.add_argument("--data-dir", type=str, default="data/processed")
-    parser.add_argument("--max-samples", type=int, default=50)
+    parser.add_argument("--max-samples", type=int, default=20)
     parser.add_argument("--output-dir", type=str, default="results/evaluation")
     parser.add_argument("--config", type=str, default="configs/grpo_train.yaml")
     args = parser.parse_args()
@@ -236,7 +218,11 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    from transformers import AutoProcessor
     from unsloth import FastVisionModel
+
+    # Load processor separately (unpatched) for inference
+    processor = AutoProcessor.from_pretrained(base_model_name, trust_remote_code=True)
 
     base_results = None
     finetuned_results = None
@@ -249,7 +235,7 @@ def main():
         load_in_4bit=True,
     )
     FastVisionModel.for_inference(base_model)
-    base_results = evaluate_model(base_model, base_tokenizer, test_data, f"Base ({base_model_name})")
+    base_results = evaluate_model(base_model, base_tokenizer, processor, test_data, f"Base ({base_model_name})")
     (output_dir / "base_results.json").write_text(json.dumps(base_results, indent=2, default=str))
 
     del base_model, base_tokenizer
@@ -265,7 +251,7 @@ def main():
             load_in_4bit=True,
         )
         FastVisionModel.for_inference(ft_model)
-        finetuned_results = evaluate_model(ft_model, ft_tokenizer, test_data, f"Fine-tuned ({args.model_path})")
+        finetuned_results = evaluate_model(ft_model, ft_tokenizer, processor, test_data, f"Fine-tuned ({args.model_path})")
         (output_dir / "finetuned_results.json").write_text(json.dumps(finetuned_results, indent=2, default=str))
 
     print_comparison(base_results, finetuned_results)
