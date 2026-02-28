@@ -131,19 +131,30 @@ echo "  uv run python scripts/train_grpo.py --config configs/grpo_train.yaml"
     }
     """
 
+    # Read SSH public key for pod access
+    ssh_key = ""
+    for key_path in ["~/.ssh/id_ed25519.pub", "~/.ssh/id_rsa.pub"]:
+        expanded = os.path.expanduser(key_path)
+        if os.path.exists(expanded):
+            with open(expanded) as f:
+                ssh_key = f.read().strip()
+            break
+
+    env_vars = [
+        {"key": "PUBLIC_KEY", "value": ssh_key},
+    ]
+
     variables = {
         "input": {
             "name": "pdf-ocr-rl-training",
-            "imageName": "runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04",
+            "imageName": "runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04",
             "gpuTypeId": gpu_type_id,
             "gpuCount": 1,
-            "volumeInGb": volume_size,
-            "containerDiskInGb": 20,
-            "minVcpuCount": 4,
-            "minMemoryInGb": 16,
-            "dockerArgs": "",
-            "env": [],
-            "templateId": None,
+            "volumeInGb": 0,
+            "containerDiskInGb": volume_size,
+            "minVcpuCount": 2,
+            "minMemoryInGb": 8,
+            "env": env_vars,
             "startJupyter": True,
             "startSsh": True,
             "cloudType": "COMMUNITY",
