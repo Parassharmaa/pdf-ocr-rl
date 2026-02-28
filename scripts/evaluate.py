@@ -66,14 +66,36 @@ def run_inference(model, tokenizer, image_path: str, language: str = "en") -> st
 
     from qwen_vl_utils import process_vision_info
 
-    image_inputs, _ = process_vision_info(messages)
+    image_inputs, video_inputs = process_vision_info(messages)
 
-    inputs = tokenizer(
-        text,
-        images=image_inputs,
-        return_tensors="pt",
-        padding=True,
-    ).to(model.device)
+    # Use the processor (not tokenizer) for vision models
+    # Unsloth patches the processor, so we get it from the model
+    try:
+        from transformers import AutoProcessor
+        processor = AutoProcessor.from_pretrained(
+            "unsloth/Qwen2.5-VL-3B-Instruct",
+            trust_remote_code=True,
+        )
+        inputs = processor(
+            text=[text],
+            images=image_inputs,
+            videos=video_inputs,
+            return_tensors="pt",
+            padding=True,
+        ).to(model.device)
+    except Exception:
+        # Fallback: pass images directly through tokenizer without keyword
+        inputs = tokenizer(
+            text,
+            return_tensors="pt",
+            padding=True,
+        ).to(model.device)
+        # Manually add pixel values
+        from transformers import Qwen2VLImageProcessor
+        img_processor = Qwen2VLImageProcessor()
+        img_inputs = img_processor(images=image_inputs, return_tensors="pt")
+        for k, v in img_inputs.items():
+            inputs[k] = v.to(model.device)
 
     with torch.no_grad():
         output_ids = model.generate(

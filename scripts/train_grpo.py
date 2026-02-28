@@ -210,10 +210,7 @@ def main():
         save_steps=config["grpo"]["save_steps"],
         max_steps=config["grpo"]["max_steps"],
         report_to="none",
-        # GSPO improvement over GRPO
-        importance_sampling_level="sequence",
-        loss_type="dr_grpo",
-        use_gradient_checkpointing="unsloth",
+        gradient_checkpointing=True,
     )
 
     trainer = GRPOTrainer(
