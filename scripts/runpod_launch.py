@@ -83,7 +83,7 @@ def get_gpu_types():
     return relevant
 
 
-def create_pod(gpu_type_id: str = "NVIDIA GeForce RTX 3090", volume_size: int = 30):
+def create_pod(gpu_type_id: str = "NVIDIA GeForce RTX 3090", volume_size: int = 200):
     """Create a RunPod pod for training."""
     # Training setup script
     setup_script = """#!/bin/bash
@@ -107,6 +107,9 @@ cd /workspace
 if [ ! -d "pdf-ocr-rl" ]; then
     echo "Project not found. Please upload or clone it."
 fi
+
+# Clean pip cache to save disk space
+pip cache purge 2>/dev/null || true
 
 echo "=== Environment ready ==="
 echo "To start training:"
@@ -272,7 +275,7 @@ def main():
     parser.add_argument("--action", choices=["create", "status", "gpus", "stop", "terminate"], required=True)
     parser.add_argument("--pod-id", type=str, help="Pod ID for stop/terminate")
     parser.add_argument("--gpu", type=str, default="NVIDIA GeForce RTX 3090", help="GPU type")
-    parser.add_argument("--volume", type=int, default=30, help="Volume size in GB")
+    parser.add_argument("--volume", type=int, default=200, help="Volume size in GB")
     args = parser.parse_args()
 
     if args.action == "create":

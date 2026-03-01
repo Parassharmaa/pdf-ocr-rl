@@ -26,15 +26,23 @@ class PDFMarkdownDataset(Dataset):
                         "image_path": img_path,
                         "markdown_path": md_source,
                         "language": entry.get("language", "en"),
+                        "page_start_char": entry.get("page_start_char", 0),
+                        "page_end_char": entry.get("page_end_char"),
                     })
 
-        # Simple split: 90% train, 10% test
-        n = len(self.pairs)
-        split_idx = int(n * 0.9)
-        if split == "train":
-            self.pairs = self.pairs[:split_idx]
-        else:
-            self.pairs = self.pairs[split_idx:]
+        # Stratified split: 90% train / 10% test per language
+        by_lang: dict[str, list] = {}
+        for pair in self.pairs:
+            by_lang.setdefault(pair["language"], []).append(pair)
+
+        split_pairs = []
+        for lang, entries in by_lang.items():
+            split_idx = int(len(entries) * 0.9)
+            if split == "train":
+                split_pairs.extend(entries[:split_idx])
+            else:
+                split_pairs.extend(entries[split_idx:])
+        self.pairs = split_pairs
 
         if max_samples:
             self.pairs = self.pairs[:max_samples]
@@ -45,7 +53,10 @@ class PDFMarkdownDataset(Dataset):
     def __getitem__(self, idx):
         pair = self.pairs[idx]
         image = Image.open(pair["image_path"]).convert("RGB")
-        markdown = Path(pair["markdown_path"]).read_text(encoding="utf-8")
+        md_full = Path(pair["markdown_path"]).read_text(encoding="utf-8")
+        start = pair.get("page_start_char", 0)
+        end = pair.get("page_end_char") or len(md_full)
+        markdown = md_full[start:end]
         return {
             "image": image,
             "markdown": markdown,
@@ -71,9 +82,12 @@ def create_hf_dataset(data_dir: str, output_path: str | None = None):
             img_path = entry["image_path"]
             md_source = entry["source"]
             if Path(img_path).exists() and Path(md_source).exists():
+                md_full = Path(md_source).read_text(encoding="utf-8")
+                start = entry.get("page_start_char", 0)
+                end = entry.get("page_end_char", len(md_full))
                 records.append({
                     "image": img_path,
-                    "markdown": Path(md_source).read_text(encoding="utf-8"),
+                    "markdown": md_full[start:end],
                     "language": entry.get("language", "en"),
                 })
 

@@ -17,26 +17,42 @@ from PIL import Image
 
 
 def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
-    """Load test split of the dataset."""
+    """Load stratified test split of the dataset (10% per language)."""
     meta_path = Path(data_dir) / "dataset_meta.json"
     if not meta_path.exists():
         raise FileNotFoundError(f"No dataset at {meta_path}")
 
     meta = json.loads(meta_path.read_text())
-    # Use last 10% as test
-    split_idx = int(len(meta) * 0.9)
-    test_meta = meta[split_idx:]
+
+    # Stratified split: take 10% from each language group
+    by_lang: dict[str, list] = {}
+    for entry in meta:
+        lang = entry.get("language", "en")
+        by_lang.setdefault(lang, []).append(entry)
+
+    test_meta = []
+    for lang, entries in by_lang.items():
+        split_idx = int(len(entries) * 0.9)
+        test_meta.extend(entries[split_idx:])
 
     samples = []
     for entry in test_meta[:max_samples]:
         img_path = entry["image_path"]
         md_source = entry["source"]
-        if Path(img_path).exists() and Path(md_source).exists():
-            samples.append({
-                "image_path": img_path,
-                "markdown": Path(md_source).read_text(encoding="utf-8"),
-                "language": entry.get("language", "en"),
-            })
+        if not Path(img_path).exists() or not Path(md_source).exists():
+            continue
+
+        # Use page-level markdown slice if offsets are available
+        md_full = Path(md_source).read_text(encoding="utf-8")
+        start = entry.get("page_start_char", 0)
+        end = entry.get("page_end_char", len(md_full))
+        md_content = md_full[start:end]
+
+        samples.append({
+            "image_path": img_path,
+            "markdown": md_content,
+            "language": entry.get("language", "en"),
+        })
     return samples
 
 

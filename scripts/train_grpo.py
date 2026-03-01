@@ -9,6 +9,7 @@ Uses Unsloth + TRL for memory-efficient GRPO training.
 
 import argparse
 import json
+import random
 import sys
 from pathlib import Path
 
@@ -59,6 +60,10 @@ def build_dataset(config: dict):
     languages = config["data"].get("languages", ["en", "ja"])
     max_samples = config["data"].get("max_train_samples", 500)
 
+    # Shuffle to mix languages before capping at max_samples
+    random.seed(42)
+    random.shuffle(meta)
+
     records = []
     for entry in meta:
         img_path = entry["image_path"]
@@ -70,7 +75,10 @@ def build_dataset(config: dict):
         if not Path(img_path).exists() or not Path(md_source).exists():
             continue
 
-        md_content = Path(md_source).read_text(encoding="utf-8")
+        md_full = Path(md_source).read_text(encoding="utf-8")
+        start = entry.get("page_start_char", 0)
+        end = entry.get("page_end_char", len(md_full))
+        md_content = md_full[start:end]
         prompt_text = _format_prompt(lang)
 
         # Format as chat messages for Qwen2.5-VL
@@ -208,6 +216,7 @@ def main():
         optim=config["grpo"]["optim"],
         logging_steps=config["grpo"]["logging_steps"],
         save_steps=config["grpo"]["save_steps"],
+        save_total_limit=config["grpo"].get("save_total_limit", 2),
         max_steps=config["grpo"]["max_steps"],
         report_to="none",
         gradient_checkpointing=True,

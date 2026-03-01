@@ -26,6 +26,7 @@ grpo:
   optim: "adamw_8bit"
   logging_steps: 5
   save_steps: 25
+  save_total_limit: 2          # Keep only last 2 checkpoints to save disk
   max_steps: 50               # 50 steps ~2-3 hours within budget
 
 reward:
@@ -48,5 +49,5 @@ output:
 runpod:
   gpu_type: "NVIDIA RTX 3090"  # $0.22/hr - cheapest viable option
   gpu_count: 1
-  volume_size: 30              # GB for model + data
+  volume_size: 200             # GB for model + data + checkpoints
   max_hours: 10                # Safety limit

@@ -223,6 +223,49 @@ def pdf_to_images(pdf_path: str, output_dir: str, dpi: int = 150) -> list[str]:
     return images
 
 
+def split_markdown_by_pages(md_content: str, num_pages: int) -> list[dict]:
+    """Split markdown into roughly equal chunks per rendered page.
+
+    Splits at paragraph boundaries (double newlines) to avoid cutting mid-sentence.
+    Returns list of dicts with 'text', 'start_char', 'end_char' for each page.
+    """
+    if num_pages <= 1:
+        return [{"text": md_content, "start_char": 0, "end_char": len(md_content)}]
+
+    chars_per_page = len(md_content) / num_pages
+    chunks = []
+    start = 0
+
+    for page_idx in range(num_pages):
+        if page_idx == num_pages - 1:
+            # Last page gets everything remaining
+            chunks.append({"text": md_content[start:], "start_char": start, "end_char": len(md_content)})
+            break
+
+        target_end = int(chars_per_page * (page_idx + 1))
+        # Find nearest paragraph boundary (\n\n) near target
+        best_split = target_end
+        search_start = max(start, target_end - 200)
+        search_end = min(len(md_content), target_end + 200)
+        window = md_content[search_start:search_end]
+
+        # Look for \n\n in the search window
+        split_pos = window.rfind("\n\n", 0, target_end - search_start + 100)
+        if split_pos == -1:
+            # No paragraph boundary found, try single newline
+            split_pos = window.rfind("\n", 0, target_end - search_start + 100)
+        if split_pos != -1:
+            best_split = search_start + split_pos + 2  # after the \n\n
+        else:
+            best_split = target_end
+
+        best_split = max(best_split, start + 1)  # ensure non-empty
+        chunks.append({"text": md_content[start:best_split], "start_char": start, "end_char": best_split})
+        start = best_split
+
+    return chunks
+
+
 def render_dataset(
     markdown_dir: str,
     output_dir: str,
@@ -285,15 +328,18 @@ def render_dataset(
         images = pdf_to_images(pdf_path, img_dir, dpi=dpi)
 
         if images:
-            # For single-page docs, pair the whole markdown with the image
-            # For multi-page, we still use the full markdown (simplified approach)
-            for img_path in images:
+            chunks = split_markdown_by_pages(md_content, len(images))
+            for i, img_path in enumerate(images):
                 pairs.append({
                     "image_path": img_path,
-                    "markdown": md_content,
+                    "markdown": chunks[i]["text"],
                     "language": lang,
                     "source": str(md_file),
                     "font_size": font_size,
+                    "page_index": i,
+                    "page_count": len(images),
+                    "page_start_char": chunks[i]["start_char"],
+                    "page_end_char": chunks[i]["end_char"],
                 })
 
         # Clean up PDF file to save space
