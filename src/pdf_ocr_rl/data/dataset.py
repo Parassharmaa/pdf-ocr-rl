@@ -109,7 +109,7 @@ class PDFMarkdownDataset(Dataset):
         if self._hf_dataset is not None:
             row = self._hf_dataset[idx]
             return {
-                "image": row["image"].convert("RGB") if not isinstance(row["image"], Image.Image) else row["image"],
+                "image": row["image"].convert("RGB") if isinstance(row["image"], Image.Image) else row["image"],
                 "markdown": row["markdown"],
                 "language": row["language"],
             }

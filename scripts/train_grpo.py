@@ -16,24 +16,12 @@ from pathlib import Path
 import yaml
 from PIL import Image
 
+from pdf_ocr_rl.data.dataset import format_prompt
+
 
 def load_config(config_path: str) -> dict:
     with open(config_path) as f:
         return yaml.safe_load(f)
-
-
-def _format_prompt(language: str) -> str:
-    if language == "ja":
-        return (
-            "この画像はPDFドキュメントのページです。"
-            "画像の内容を正確にMarkdown形式に変換してください。"
-            "見出し、表、コードブロック、リストなどの書式を正しく再現してください。"
-        )
-    return (
-        "This image is a page from a PDF document. "
-        "Convert the content of this image accurately to Markdown format. "
-        "Preserve headings, tables, code blocks, lists, and other formatting faithfully."
-    )
 
 
 def build_dataset(config: dict):
@@ -62,14 +50,14 @@ def build_dataset(config: dict):
     if use_hub:
         print("Local dataset not found, loading from HuggingFace Hub...")
         from pdf_ocr_rl.data.dataset import load_hf_dataset
-        hf_ds = load_hf_dataset(split="train", max_samples=max_samples)
+        hf_ds = load_hf_dataset(split="train")
 
         records = []
         for row in hf_ds:
             lang = row.get("language", "en")
             if lang not in languages:
                 continue
-            prompt_text = _format_prompt(lang)
+            prompt_text = format_prompt(lang)
             prompt = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt_text}]}]
             img = row["image"].convert("RGB") if hasattr(row["image"], "convert") else row["image"]
             records.append({"prompt": prompt, "image": img, "answer": row["markdown"], "language": lang})
@@ -95,7 +83,7 @@ def build_dataset(config: dict):
             start = entry.get("page_start_char", 0)
             end = entry.get("page_end_char", len(md_full))
             md_content = md_full[start:end]
-            prompt_text = _format_prompt(lang)
+            prompt_text = format_prompt(lang)
             prompt = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt_text}]}]
             records.append({"prompt": prompt, "image": Image.open(img_path).convert("RGB"), "answer": md_content, "language": lang})
 

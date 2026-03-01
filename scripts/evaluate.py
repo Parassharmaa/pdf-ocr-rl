@@ -15,6 +15,8 @@ import torch
 import yaml
 from PIL import Image
 
+from pdf_ocr_rl.data.dataset import format_prompt
+
 
 def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
     """Load stratified test split of the dataset (10% per language).
@@ -34,17 +36,11 @@ def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
             img = row["image"]
             if hasattr(img, "convert"):
                 img = img.convert("RGB")
-            # Save image to temp file for run_inference compatibility
-            import tempfile
-            tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-            img.save(tmp.name)
             samples.append({
-                "image_path": tmp.name,
+                "image": img,
                 "markdown": row["markdown"],
                 "language": row.get("language", "en"),
             })
-            if len(samples) >= max_samples:
-                break
         print(f"Loaded {len(samples)} test samples from HuggingFace Hub")
         return samples
 
@@ -74,22 +70,19 @@ def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
         md_content = md_full[start:end]
 
         samples.append({
-            "image_path": img_path,
+            "image": Image.open(img_path).convert("RGB"),
             "markdown": md_content,
             "language": entry.get("language", "en"),
         })
     return samples
 
 
-def run_inference(model, tokenizer, processor, image_path: str, language: str = "en") -> str:
-    """Run inference on a single image."""
-    prompt = (
-        "この画像はPDFドキュメントのページです。画像の内容を正確にMarkdown形式に変換してください。"
-        if language == "ja"
-        else "This image is a page from a PDF document. Convert the content accurately to Markdown format."
-    )
+def run_inference(model, tokenizer, processor, image: str | Image.Image, language: str = "en") -> str:
+    """Run inference on a single image (accepts file path or PIL Image)."""
+    prompt = format_prompt(language)
 
-    image = Image.open(image_path).convert("RGB")
+    if isinstance(image, (str, Path)):
+        image = Image.open(image).convert("RGB")
 
     messages = [
         {
@@ -144,13 +137,13 @@ def evaluate_model(model, tokenizer, processor, test_data: list[dict], model_nam
 
     for i, sample in enumerate(test_data):
         try:
-            predicted = run_inference(model, tokenizer, processor, sample["image_path"], sample["language"])
+            predicted = run_inference(model, tokenizer, processor, sample["image"], sample["language"])
             metrics = evaluate_sample(predicted, sample["markdown"])
             metrics["language"] = sample["language"]
             all_metrics.append(metrics)
 
             results["samples"].append({
-                "image": sample["image_path"],
+                "image": str(sample.get("image", f"sample_{i}")),
                 "language": sample["language"],
                 "metrics": metrics,
                 "predicted_length": len(predicted),

@@ -11,8 +11,9 @@ import os
 import sys
 from pathlib import Path
 
+from pdf_ocr_rl.data.dataset import HF_DATASET_REPO
 
-REPO_ID = "blazeofchi/pdf-ocr-rl-dataset"
+REPO_ID = HF_DATASET_REPO
 
 
 def get_hf_token() -> str:
