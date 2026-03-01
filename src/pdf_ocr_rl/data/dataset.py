@@ -14,12 +14,22 @@ HuggingFace dataset schema:
 """
 
 import json
+import re
 from pathlib import Path
 
 from PIL import Image
 from torch.utils.data import Dataset
 
 HF_DATASET_REPO = "blazeofchi/pdf-ocr-rl-dataset"
+
+
+def strip_thinking(text: str) -> str:
+    """Strip <think>...</think> blocks from model output.
+
+    Qwen3 models generate thinking tokens by default. These need to be
+    removed before evaluating the actual markdown content.
+    """
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 
 def load_hf_dataset(split: str = "train", max_samples: int | None = None):
@@ -128,15 +138,21 @@ class PDFMarkdownDataset(Dataset):
 
 
 def format_prompt(language: str = "en") -> str:
-    """Format the system/user prompt for PDF-to-markdown conversion."""
+    """Format the system/user prompt for PDF-to-markdown conversion.
+
+    Appends /no_think to disable Qwen3's thinking mode, which wastes
+    completion tokens on reasoning instead of producing markdown output.
+    """
     if language == "ja":
         return (
             "この画像はPDFドキュメントのページです。"
             "画像の内容を正確にMarkdown形式に変換してください。"
             "見出し、表、コードブロック、リストなどの書式を正しく再現してください。"
+            " /no_think"
         )
     return (
         "This image is a page from a PDF document. "
         "Convert the content of this image accurately to Markdown format. "
         "Preserve headings, tables, code blocks, lists, and other formatting faithfully."
+        " /no_think"
     )

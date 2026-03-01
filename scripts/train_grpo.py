@@ -16,7 +16,7 @@ from pathlib import Path
 import yaml
 from PIL import Image
 
-from pdf_ocr_rl.data.dataset import format_prompt
+from pdf_ocr_rl.data.dataset import format_prompt, strip_thinking
 
 
 def load_config(config_path: str) -> dict:
@@ -123,6 +123,9 @@ def create_reward_fn(config: dict):
             text = completion
             if isinstance(completion, dict):
                 text = completion.get("content", completion.get("text", str(completion)))
+
+            # Strip <think>...</think> blocks (Qwen3 thinking mode)
+            text = strip_thinking(text)
 
             # Get the reference for this sample
             ref = answer[i] if isinstance(answer, list) else answer

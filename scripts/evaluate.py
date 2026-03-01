@@ -15,7 +15,7 @@ import torch
 import yaml
 from PIL import Image
 
-from pdf_ocr_rl.data.dataset import format_prompt
+from pdf_ocr_rl.data.dataset import format_prompt, strip_thinking
 
 
 def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
@@ -122,7 +122,8 @@ def run_inference(model, tokenizer, processor, image: str | Image.Image, languag
         output_ids[0][inputs["input_ids"].shape[1]:],
         skip_special_tokens=True,
     )
-    return generated.strip()
+    # Strip <think>...</think> blocks (Qwen3 thinking mode)
+    return strip_thinking(generated)
 
 
 def evaluate_model(model, tokenizer, processor, test_data: list[dict], model_name: str) -> dict:
@@ -157,8 +158,8 @@ def evaluate_model(model, tokenizer, processor, test_data: list[dict], model_nam
 
         if (i + 1) % 5 == 0:
             elapsed = time.time() - start_time
-            avg = sum(m.get("composite", 0) for m in all_metrics) / len(all_metrics) if all_metrics else 0
-            print(f"  Processed {i + 1}/{len(test_data)} ({elapsed:.1f}s, avg composite: {avg:.4f})...")
+            avg = sum(m.get("edit_distance", 0) for m in all_metrics) / len(all_metrics) if all_metrics else 0
+            print(f"  Processed {i + 1}/{len(test_data)} ({elapsed:.1f}s, avg edit_dist: {avg:.4f})...")
 
     elapsed = time.time() - start_time
     results["total_time_seconds"] = elapsed
