@@ -139,6 +139,7 @@ def create_reward_fn(config: dict):
 def main():
     parser = argparse.ArgumentParser(description="GRPO training for PDF-to-markdown")
     parser.add_argument("--config", type=str, default="configs/grpo_train.yaml")
+    parser.add_argument("--from-sft", type=str, default=None, help="Path to SFT checkpoint to continue from")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -152,29 +153,37 @@ def main():
     print()
 
     # Load model with Unsloth
-    print("Loading model with Unsloth...")
     from unsloth import FastVisionModel
 
-    model, tokenizer = FastVisionModel.from_pretrained(
-        config["model"]["name"],
-        max_seq_length=config["model"]["max_seq_length"],
-        load_in_4bit=config["model"]["load_in_4bit"],
-        dtype=None,
-    )
-
-    model = FastVisionModel.get_peft_model(
-        model,
-        finetune_vision_layers=True,
-        finetune_language_layers=True,
-        finetune_attention_modules=True,
-        finetune_mlp_modules=True,
-        r=config["lora"]["r"],
-        lora_alpha=config["lora"]["alpha"],
-        lora_dropout=0,
-        bias="none",
-        random_state=42,
-        use_rslora=False,
-    )
+    if args.from_sft:
+        print(f"Loading SFT checkpoint from {args.from_sft}...")
+        model, tokenizer = FastVisionModel.from_pretrained(
+            args.from_sft,
+            max_seq_length=config["model"]["max_seq_length"],
+            load_in_4bit=config["model"]["load_in_4bit"],
+            dtype=None,
+        )
+    else:
+        print("Loading base model with Unsloth...")
+        model, tokenizer = FastVisionModel.from_pretrained(
+            config["model"]["name"],
+            max_seq_length=config["model"]["max_seq_length"],
+            load_in_4bit=config["model"]["load_in_4bit"],
+            dtype=None,
+        )
+        model = FastVisionModel.get_peft_model(
+            model,
+            finetune_vision_layers=True,
+            finetune_language_layers=True,
+            finetune_attention_modules=True,
+            finetune_mlp_modules=True,
+            r=config["lora"]["r"],
+            lora_alpha=config["lora"]["alpha"],
+            lora_dropout=0,
+            bias="none",
+            random_state=42,
+            use_rslora=False,
+        )
     print("Model loaded successfully!")
 
     # Load dataset

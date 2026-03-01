@@ -1,5 +1,5 @@
-# GRPO Training Configuration for Qwen3-VL-2B (smaller, faster model)
-# PDF-to-Markdown VLM fine-tuning with RL
+# Training Configuration for Qwen3-VL-2B
+# PDF-to-Markdown VLM fine-tuning: SFT warm-up → GRPO refinement
 
 model:
   name: "unsloth/Qwen3-VL-2B-Instruct"
@@ -12,10 +12,14 @@ lora:
   dropout: 0.0
   target_modules: "all"
 
+sft:
+  max_steps: 100                  # SFT warm-up: teach exact format
+  learning_rate: 2.0e-5
+
 grpo:
   num_generations: 4
-  max_completion_length: 1024     # Longer completions for better markdown
-  learning_rate: 2.0e-5           # Higher LR for GRPO policy gradient signal
+  max_completion_length: 1024
+  learning_rate: 5.0e-6           # Lower LR for GRPO refinement after SFT
   num_train_epochs: 1
   per_device_train_batch_size: 1
   gradient_accumulation_steps: 4
@@ -27,7 +31,7 @@ grpo:
   logging_steps: 5
   save_steps: 100
   save_total_limit: 2
-  max_steps: 200                  # More steps for meaningful weight changes
+  max_steps: 100                  # GRPO refinement after SFT
 
 reward:
   weights:
@@ -42,6 +46,6 @@ data:
   languages: ["en", "ja"]
 
 output:
-  dir: "results/grpo_qwen3vl2b_v2"
+  dir: "results/qwen3vl2b_v2"
   save_model: true
   push_to_hub: false
