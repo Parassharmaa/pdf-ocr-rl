@@ -1,0 +1,832 @@
+{
+  "base": {
+    "model": "Base (Qwen/Qwen3-VL-2B-Instruct)",
+    "samples": [
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.9087534797401794,
+          "heading_precision": 1.0,
+          "heading_recall": 0.6,
+          "heading_f1": 0.7499999999999999,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.5,
+          "code_block_similarity": 0.23673469387755103,
+          "word_precision": 0.9916666666666667,
+          "word_recall": 0.8561151079136691,
+          "word_f1": 0.918918918918919,
+          "language": "en"
+        },
+        "predicted_length": 1495,
+        "reference_length": 1738
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.9127593066211992,
+          "heading_precision": 0.6,
+          "heading_recall": 1.0,
+          "heading_f1": 0.7499999999999999,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.82,
+          "word_recall": 0.9318181818181818,
+          "word_f1": 0.8723404255319149,
+          "language": "en"
+        },
+        "predicted_length": 1834,
+        "reference_length": 1685
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8008644643408459,
+          "heading_precision": 0.0,
+          "heading_recall": 0.0,
+          "heading_f1": 0.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.0,
+          "word_precision": 0.8803418803418803,
+          "word_recall": 0.7006802721088435,
+          "word_f1": 0.7803030303030303,
+          "language": "en"
+        },
+        "predicted_length": 1362,
+        "reference_length": 1877
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.705292479108635,
+          "heading_precision": 0.5,
+          "heading_recall": 0.5,
+          "heading_f1": 0.5,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.19081272084805656,
+          "word_precision": 0.6929133858267716,
+          "word_recall": 0.7154471544715447,
+          "word_f1": 0.7040000000000001,
+          "language": "en"
+        },
+        "predicted_length": 1797,
+        "reference_length": 1793
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.6553273427471117,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.0,
+          "word_precision": 0.6938775510204082,
+          "word_recall": 0.5528455284552846,
+          "word_f1": 0.6153846153846154,
+          "language": "en"
+        },
+        "predicted_length": 1353,
+        "reference_length": 1763
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.6918918918918919,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.5282051282051282,
+          "word_recall": 0.8046875,
+          "word_f1": 0.6377708978328174,
+          "language": "en"
+        },
+        "predicted_length": 2321,
+        "reference_length": 1564
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8671011618022102,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.3555555555555555,
+          "word_precision": 0.9532710280373832,
+          "word_recall": 0.723404255319149,
+          "word_f1": 0.8225806451612904,
+          "language": "en"
+        },
+        "predicted_length": 1547,
+        "reference_length": 1982
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.7905405405405406,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 0.8148148148148148,
+          "code_block_count_match": 0.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.6239316239316239,
+          "word_recall": 0.6576576576576577,
+          "word_f1": 0.6403508771929826,
+          "language": "en"
+        },
+        "predicted_length": 1504,
+        "reference_length": 1752
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8438403701561596,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.6592592592592592,
+          "word_recall": 0.7542372881355932,
+          "word_f1": 0.7035573122529644,
+          "language": "en"
+        },
+        "predicted_length": 1764,
+        "reference_length": 1694
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.601949802945447,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.47275025751474853,
+          "word_precision": 0.9069767441860465,
+          "word_recall": 0.75,
+          "word_f1": 0.8210526315789475,
+          "language": "en"
+        },
+        "predicted_length": 2854,
+        "reference_length": 1967
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8387434554973822,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.5,
+          "code_block_similarity": 0.3814724705135664,
+          "word_precision": 0.6388888888888888,
+          "word_recall": 0.8141592920353983,
+          "word_f1": 0.7159533073929961,
+          "language": "en"
+        },
+        "predicted_length": 2109,
+        "reference_length": 1711
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8375540457072267,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.3677130044843049,
+          "word_precision": 0.8842975206611571,
+          "word_recall": 0.722972972972973,
+          "word_f1": 0.7955390334572491,
+          "language": "en"
+        },
+        "predicted_length": 1460,
+        "reference_length": 1778
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.6997570288094412,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.5912408759124088,
+          "word_recall": 0.8709677419354839,
+          "word_f1": 0.7043478260869565,
+          "language": "en"
+        },
+        "predicted_length": 1813,
+        "reference_length": 1068
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.37420221699697687,
+          "heading_precision": 0.5,
+          "heading_recall": 0.6666666666666666,
+          "heading_f1": 0.5714285714285715,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.4351851851851852,
+          "word_recall": 0.3983050847457627,
+          "word_f1": 0.41592920353982304,
+          "language": "en"
+        },
+        "predicted_length": 1613,
+        "reference_length": 1364
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.21060842433697347,
+          "heading_precision": 1.0,
+          "heading_recall": 0.6,
+          "heading_f1": 0.7499999999999999,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 0.13138686131386856,
+          "word_precision": 0.8461538461538461,
+          "word_recall": 0.13414634146341464,
+          "word_f1": 0.23157894736842108,
+          "language": "en"
+        },
+        "predicted_length": 139,
+        "reference_length": 1143
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.9154865235267245,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.782051282051282,
+          "word_recall": 0.8133333333333334,
+          "word_f1": 0.7973856209150326,
+          "language": "en"
+        },
+        "predicted_length": 1108,
+        "reference_length": 1081
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.9100850546780073,
+          "heading_precision": 1.0,
+          "heading_recall": 0.8,
+          "heading_f1": 0.888888888888889,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.0332541567695962,
+          "word_precision": 0.9230769230769231,
+          "word_recall": 0.8275862068965517,
+          "word_f1": 0.8727272727272727,
+          "language": "en"
+        },
+        "predicted_length": 765,
+        "reference_length": 881
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.7981776765375854,
+          "heading_precision": 0.5,
+          "heading_recall": 1.0,
+          "heading_f1": 0.6666666666666666,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.6666666666666666,
+          "word_recall": 0.8225806451612904,
+          "word_f1": 0.7364620938628158,
+          "language": "en"
+        },
+        "predicted_length": 2327,
+        "reference_length": 2063
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8024519364725551,
+          "heading_precision": 1.0,
+          "heading_recall": 0.8571428571428571,
+          "heading_f1": 0.923076923076923,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.6666666666666667,
+          "code_block_similarity": 0.3810573784726052,
+          "word_precision": 0.8585858585858586,
+          "word_recall": 0.6589147286821705,
+          "word_f1": 0.7456140350877193,
+          "language": "en"
+        },
+        "predicted_length": 1493,
+        "reference_length": 2096
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8845157949249094,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.7380952380952381,
+          "word_recall": 0.8051948051948052,
+          "word_f1": 0.7701863354037267,
+          "language": "en"
+        },
+        "predicted_length": 1027,
+        "reference_length": 904
+      }
+    ],
+    "metrics_by_language": {
+      "en": {
+        "edit_distance": 0.7524951498691002,
+        "heading_precision": 0.8550000000000001,
+        "heading_recall": 0.851190476190476,
+        "heading_f1": 0.8400030525030525,
+        "table_count_match": 1.0,
+        "table_cell_accuracy": 0.9907407407407408,
+        "code_block_count_match": 0.33333333333333337,
+        "code_block_similarity": 0.5775368549674926,
+        "word_precision": 0.7557342776376311,
+        "word_recall": 0.7157527049150554,
+        "word_f1": 0.7150991514999747,
+        "count": 20
+      }
+    },
+    "total_time_seconds": 224.78803634643555,
+    "overall": {
+      "edit_distance": 0.7524951498691002,
+      "heading_precision": 0.8550000000000001,
+      "heading_recall": 0.851190476190476,
+      "heading_f1": 0.8400030525030525,
+      "table_count_match": 1.0,
+      "table_cell_accuracy": 0.9907407407407408,
+      "code_block_count_match": 0.33333333333333337,
+      "code_block_similarity": 0.5775368549674926,
+      "word_precision": 0.7557342776376311,
+      "word_recall": 0.7157527049150554,
+      "word_f1": 0.7150991514999747
+    }
+  },
+  "finetuned": {
+    "model": "Fine-tuned (results/qwen3vl2b_v2/final_model)",
+    "samples": [
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.915550015581178,
+          "heading_precision": 1.0,
+          "heading_recall": 0.6,
+          "heading_f1": 0.7499999999999999,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.5,
+          "code_block_similarity": 0.24117393180837288,
+          "word_precision": 0.9916666666666667,
+          "word_recall": 0.8561151079136691,
+          "word_f1": 0.918918918918919,
+          "language": "en"
+        },
+        "predicted_length": 1471,
+        "reference_length": 1738
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.9152155295461033,
+          "heading_precision": 0.6,
+          "heading_recall": 1.0,
+          "heading_f1": 0.7499999999999999,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.8456375838926175,
+          "word_recall": 0.9545454545454546,
+          "word_f1": 0.8967971530249111,
+          "language": "en"
+        },
+        "predicted_length": 1818,
+        "reference_length": 1685
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8119685039370079,
+          "heading_precision": 1.0,
+          "heading_recall": 0.75,
+          "heading_f1": 0.8571428571428571,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.9495798319327731,
+          "word_recall": 0.7687074829931972,
+          "word_f1": 0.849624060150376,
+          "language": "en"
+        },
+        "predicted_length": 1298,
+        "reference_length": 1877
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.7121896162528216,
+          "heading_precision": 0.5,
+          "heading_recall": 0.5,
+          "heading_f1": 0.5,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.37941473259334,
+          "word_precision": 0.6984126984126984,
+          "word_recall": 0.7154471544715447,
+          "word_f1": 0.7068273092369477,
+          "language": "en"
+        },
+        "predicted_length": 1751,
+        "reference_length": 1793
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.6658097686375322,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.0,
+          "word_precision": 0.6796116504854369,
+          "word_recall": 0.5691056910569106,
+          "word_f1": 0.6194690265486726,
+          "language": "en"
+        },
+        "predicted_length": 1349,
+        "reference_length": 1763
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.534181240063593,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.47685185185185186,
+          "word_recall": 0.8046875,
+          "word_f1": 0.5988372093023255,
+          "language": "en"
+        },
+        "predicted_length": 3468,
+        "reference_length": 1564
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.5367049808429118,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.27159023228111967,
+          "word_precision": 0.9619047619047619,
+          "word_recall": 0.7163120567375887,
+          "word_f1": 0.8211382113821137,
+          "language": "en"
+        },
+        "predicted_length": 4543,
+        "reference_length": 1982
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.6871619698263592,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 0,
+          "table_cell_accuracy": 0.0,
+          "code_block_count_match": 0.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.6296296296296297,
+          "word_recall": 0.6126126126126126,
+          "word_f1": 0.6210045662100455,
+          "language": "en"
+        },
+        "predicted_length": 1761,
+        "reference_length": 1752
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8340011448196909,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.6592592592592592,
+          "word_recall": 0.7542372881355932,
+          "word_f1": 0.7035573122529644,
+          "language": "en"
+        },
+        "predicted_length": 1800,
+        "reference_length": 1694
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8377205669655771,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.8,
+          "code_block_similarity": 0.2542414291934846,
+          "word_precision": 0.8818897637795275,
+          "word_recall": 0.717948717948718,
+          "word_f1": 0.7915194346289752,
+          "language": "en"
+        },
+        "predicted_length": 1490,
+        "reference_length": 1967
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8312564901349948,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.6413793103448275,
+          "word_recall": 0.8230088495575221,
+          "word_f1": 0.7209302325581395,
+          "language": "en"
+        },
+        "predicted_length": 2141,
+        "reference_length": 1711
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8315658140985652,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.9967845659163987,
+          "word_precision": 0.8916666666666667,
+          "word_recall": 0.722972972972973,
+          "word_f1": 0.7985074626865671,
+          "language": "en"
+        },
+        "predicted_length": 1428,
+        "reference_length": 1778
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.693021656926779,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.5785714285714286,
+          "word_recall": 0.8709677419354839,
+          "word_f1": 0.6952789699570815,
+          "language": "en"
+        },
+        "predicted_length": 1841,
+        "reference_length": 1068
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.33698130414956684,
+          "heading_precision": 1.0,
+          "heading_recall": 0.6666666666666666,
+          "heading_f1": 0.8,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.8679245283018868,
+          "word_recall": 0.3898305084745763,
+          "word_f1": 0.5380116959064328,
+          "language": "en"
+        },
+        "predicted_length": 3022,
+        "reference_length": 1364
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.1943127962085308,
+          "heading_precision": 1.0,
+          "heading_recall": 0.6,
+          "heading_f1": 0.7499999999999999,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0,
+          "code_block_similarity": 0.0,
+          "word_precision": 0.9090909090909091,
+          "word_recall": 0.12195121951219512,
+          "word_f1": 0.21505376344086022,
+          "language": "en"
+        },
+        "predicted_length": 123,
+        "reference_length": 1143
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.9013953488372093,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.8717948717948718,
+          "word_recall": 0.9066666666666666,
+          "word_f1": 0.8888888888888887,
+          "language": "en"
+        },
+        "predicted_length": 1069,
+        "reference_length": 1081
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.9436450839328537,
+          "heading_precision": 1.0,
+          "heading_recall": 0.8,
+          "heading_f1": 0.888888888888889,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.9811320754716981,
+          "word_recall": 0.896551724137931,
+          "word_f1": 0.9369369369369369,
+          "language": "en"
+        },
+        "predicted_length": 787,
+        "reference_length": 881
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.7906976744186046,
+          "heading_precision": 0.5,
+          "heading_recall": 1.0,
+          "heading_f1": 0.6666666666666666,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.6623376623376623,
+          "word_recall": 0.8225806451612904,
+          "word_f1": 0.7338129496402878,
+          "language": "en"
+        },
+        "predicted_length": 2366,
+        "reference_length": 2063
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.8118369625907315,
+          "heading_precision": 1.0,
+          "heading_recall": 0.8571428571428571,
+          "heading_f1": 0.923076923076923,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 1.0,
+          "code_block_similarity": 0.9992641648270787,
+          "word_precision": 0.88,
+          "word_recall": 0.6821705426356589,
+          "word_f1": 0.7685589519650655,
+          "language": "en"
+        },
+        "predicted_length": 1486,
+        "reference_length": 2096
+      },
+      {
+        "language": "en",
+        "metrics": {
+          "edit_distance": 0.9068062827225131,
+          "heading_precision": 1.0,
+          "heading_recall": 1.0,
+          "heading_f1": 1.0,
+          "table_count_match": 1.0,
+          "table_cell_accuracy": 1.0,
+          "code_block_count_match": 0.0,
+          "code_block_similarity": 1.0,
+          "word_precision": 0.7471264367816092,
+          "word_recall": 0.8441558441558441,
+          "word_f1": 0.7926829268292682,
+          "language": "en"
+        },
+        "predicted_length": 1006,
+        "reference_length": 904
+      }
+    ],
+    "metrics_by_language": {
+      "en": {
+        "edit_distance": 0.7346011375246563,
+        "heading_precision": 0.93,
+        "heading_recall": 0.8886904761904761,
+        "heading_f1": 0.8942887667887668,
+        "table_count_match": 0.95,
+        "table_cell_accuracy": 0.95,
+        "code_block_count_match": 0.515,
+        "code_block_similarity": 0.7571234528309897,
+        "word_precision": 0.7902733793588392,
+        "word_recall": 0.7275287890812715,
+        "word_f1": 0.730817799023289,
+        "count": 20
+      }
+    },
+    "total_time_seconds": 473.75128984451294,
+    "overall": {
+      "edit_distance": 0.7346011375246563,
+      "heading_precision": 0.93,
+      "heading_recall": 0.8886904761904761,
+      "heading_f1": 0.8942887667887668,
+      "table_count_match": 0.95,
+      "table_cell_accuracy": 0.95,
+      "code_block_count_match": 0.515,
+      "code_block_similarity": 0.7571234528309897,
+      "word_precision": 0.7902733793588392,
+      "word_recall": 0.7275287890812715,
+      "word_f1": 0.730817799023289
+    }
+  }
+}
