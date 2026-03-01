@@ -100,6 +100,21 @@ def compute_code_block_accuracy(predicted: str, reference: str) -> dict:
     return {"code_block_count_match": count_match, "code_block_similarity": avg_sim}
 
 
+def compute_word_metrics(predicted: str, reference: str) -> dict:
+    """Word-level precision, recall, F1 — more forgiving than char-level edit distance."""
+    pred_words = set(predicted.lower().split())
+    ref_words = set(reference.lower().split())
+    if not ref_words:
+        return {"word_precision": 1.0, "word_recall": 1.0, "word_f1": 1.0}
+    if not pred_words:
+        return {"word_precision": 0.0, "word_recall": 0.0, "word_f1": 0.0}
+    common = pred_words & ref_words
+    precision = len(common) / len(pred_words)
+    recall = len(common) / len(ref_words)
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+    return {"word_precision": precision, "word_recall": recall, "word_f1": f1}
+
+
 def evaluate_sample(predicted: str, reference: str) -> dict:
     """Run all metrics on a single sample."""
     results = {
@@ -108,6 +123,7 @@ def evaluate_sample(predicted: str, reference: str) -> dict:
     results.update(compute_heading_accuracy(predicted, reference))
     results.update(compute_table_accuracy(predicted, reference))
     results.update(compute_code_block_accuracy(predicted, reference))
+    results.update(compute_word_metrics(predicted, reference))
     return results
 
 
