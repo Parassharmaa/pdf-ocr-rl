@@ -13,9 +13,9 @@ lora:
   target_modules: "all"
 
 grpo:
-  num_generations: 6              # More generations for better reward signal
-  max_completion_length: 1024     # Longer completions (no thinking overhead now)
-  learning_rate: 2.0e-5           # 4x higher LR for GRPO policy gradient
+  num_generations: 4
+  max_completion_length: 1024     # Longer completions for better markdown
+  learning_rate: 2.0e-5           # Higher LR for GRPO policy gradient signal
   num_train_epochs: 1
   per_device_train_batch_size: 1
   gradient_accumulation_steps: 4
@@ -27,7 +27,7 @@ grpo:
   logging_steps: 5
   save_steps: 100
   save_total_limit: 2
-  max_steps: 200                  # 2x more steps for meaningful weight changes
+  max_steps: 200                  # More steps for meaningful weight changes
 
 reward:
   weights:
