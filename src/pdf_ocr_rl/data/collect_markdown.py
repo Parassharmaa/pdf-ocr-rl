@@ -285,7 +285,10 @@ def fetch_wiki_markdown(pages: list[str], language: str = "en") -> list[dict]:
     for title in tqdm(pages, desc=f"Wikipedia {lang_code.upper()}"):
         url = f"https://{lang_code}.wikipedia.org/api/rest_v1/page/html/{title}"
         try:
-            resp = requests.get(url, timeout=15, headers={"Accept": "text/html"})
+            resp = requests.get(url, timeout=15, headers={
+                "Accept": "text/html",
+                "User-Agent": "pdf-ocr-rl/1.0 (research project; https://github.com/Parassharmaa/pdf-ocr-rl)",
+            })
             resp.raise_for_status()
             text = _wiki_html_to_markdown(resp.text)
 
