@@ -17,10 +17,36 @@ from PIL import Image
 
 
 def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
-    """Load stratified test split of the dataset (10% per language)."""
+    """Load stratified test split of the dataset (10% per language).
+
+    Data sources (in priority order):
+    1. Local data_dir with dataset_meta.json
+    2. HuggingFace Hub: blazeofchi/pdf-ocr-rl-dataset (test split)
+    """
     meta_path = Path(data_dir) / "dataset_meta.json"
+
     if not meta_path.exists():
-        raise FileNotFoundError(f"No dataset at {meta_path}")
+        print("Local dataset not found, loading test split from HuggingFace Hub...")
+        from pdf_ocr_rl.data.dataset import load_hf_dataset
+        hf_ds = load_hf_dataset(split="test", max_samples=max_samples)
+        samples = []
+        for row in hf_ds:
+            img = row["image"]
+            if hasattr(img, "convert"):
+                img = img.convert("RGB")
+            # Save image to temp file for run_inference compatibility
+            import tempfile
+            tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+            img.save(tmp.name)
+            samples.append({
+                "image_path": tmp.name,
+                "markdown": row["markdown"],
+                "language": row.get("language", "en"),
+            })
+            if len(samples) >= max_samples:
+                break
+        print(f"Loaded {len(samples)} test samples from HuggingFace Hub")
+        return samples
 
     meta = json.loads(meta_path.read_text())
 
@@ -42,7 +68,6 @@ def load_test_data(data_dir: str, max_samples: int = 50) -> list[dict]:
         if not Path(img_path).exists() or not Path(md_source).exists():
             continue
 
-        # Use page-level markdown slice if offsets are available
         md_full = Path(md_source).read_text(encoding="utf-8")
         start = entry.get("page_start_char", 0)
         end = entry.get("page_end_char", len(md_full))

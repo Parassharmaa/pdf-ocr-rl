@@ -39,6 +39,10 @@ def _format_prompt(language: str) -> str:
 def build_dataset(config: dict):
     """Load the image-markdown dataset in Unsloth Vision GRPO format.
 
+    Data sources (in priority order):
+    1. Local data_dir with dataset_meta.json (from scripts/create_dataset.py)
+    2. HuggingFace Hub: blazeofchi/pdf-ocr-rl-dataset
+
     Format expected by TRL GRPOTrainer:
     {
         "prompt": [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": "..."}]}],
@@ -50,60 +54,56 @@ def build_dataset(config: dict):
 
     data_dir = Path(config["data"]["train_dir"])
     meta_path = data_dir / "dataset_meta.json"
-
-    if not meta_path.exists():
-        print(f"Error: No dataset found at {meta_path}")
-        print("Run: python scripts/create_dataset.py first")
-        sys.exit(1)
-
-    meta = json.loads(meta_path.read_text())
     languages = config["data"].get("languages", ["en", "ja"])
     max_samples = config["data"].get("max_train_samples", 500)
 
-    # Shuffle to mix languages before capping at max_samples
-    random.seed(42)
-    random.shuffle(meta)
+    use_hub = not meta_path.exists()
 
-    records = []
-    for entry in meta:
-        img_path = entry["image_path"]
-        md_source = entry["source"]
-        lang = entry.get("language", "en")
+    if use_hub:
+        print("Local dataset not found, loading from HuggingFace Hub...")
+        from pdf_ocr_rl.data.dataset import load_hf_dataset
+        hf_ds = load_hf_dataset(split="train", max_samples=max_samples)
 
-        if lang not in languages:
-            continue
-        if not Path(img_path).exists() or not Path(md_source).exists():
-            continue
+        records = []
+        for row in hf_ds:
+            lang = row.get("language", "en")
+            if lang not in languages:
+                continue
+            prompt_text = _format_prompt(lang)
+            prompt = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt_text}]}]
+            img = row["image"].convert("RGB") if hasattr(row["image"], "convert") else row["image"]
+            records.append({"prompt": prompt, "image": img, "answer": row["markdown"], "language": lang})
+            if len(records) >= max_samples:
+                break
+    else:
+        meta = json.loads(meta_path.read_text())
+        random.seed(42)
+        random.shuffle(meta)
 
-        md_full = Path(md_source).read_text(encoding="utf-8")
-        start = entry.get("page_start_char", 0)
-        end = entry.get("page_end_char", len(md_full))
-        md_content = md_full[start:end]
-        prompt_text = _format_prompt(lang)
+        records = []
+        for entry in meta:
+            img_path = entry["image_path"]
+            md_source = entry["source"]
+            lang = entry.get("language", "en")
 
-        # Format as chat messages for Qwen2.5-VL
-        prompt = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image"},
-                    {"type": "text", "text": prompt_text},
-                ],
-            }
-        ]
+            if lang not in languages:
+                continue
+            if not Path(img_path).exists() or not Path(md_source).exists():
+                continue
 
-        records.append({
-            "prompt": prompt,
-            "image": Image.open(img_path).convert("RGB"),
-            "answer": md_content,
-            "language": lang,
-        })
+            md_full = Path(md_source).read_text(encoding="utf-8")
+            start = entry.get("page_start_char", 0)
+            end = entry.get("page_end_char", len(md_full))
+            md_content = md_full[start:end]
+            prompt_text = _format_prompt(lang)
+            prompt = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt_text}]}]
+            records.append({"prompt": prompt, "image": Image.open(img_path).convert("RGB"), "answer": md_content, "language": lang})
 
-        if len(records) >= max_samples:
-            break
+            if len(records) >= max_samples:
+                break
 
     ds = Dataset.from_list(records)
-    print(f"Loaded {len(ds)} training samples")
+    print(f"Loaded {len(ds)} training samples" + (" (from HuggingFace Hub)" if use_hub else " (from local)"))
     return ds
 
 

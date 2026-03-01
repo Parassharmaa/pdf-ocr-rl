@@ -1,4 +1,17 @@
-"""HuggingFace-compatible dataset for PDF-to-markdown training."""
+"""HuggingFace-compatible dataset for PDF-to-markdown training.
+
+Supports two data sources:
+1. Local files via dataset_meta.json (from scripts/create_dataset.py)
+2. HuggingFace Hub dataset: blazeofchi/pdf-ocr-rl-dataset
+
+HuggingFace dataset schema:
+    - image (Image): rendered PDF page
+    - markdown (str): page-level markdown content
+    - language (str): "en" or "ja"
+    - source (str): origin repo/document
+    - doc_id (str): unique document identifier
+    - page_num (int): page index within the document
+"""
 
 import json
 from pathlib import Path
@@ -6,29 +19,68 @@ from pathlib import Path
 from PIL import Image
 from torch.utils.data import Dataset
 
+HF_DATASET_REPO = "blazeofchi/pdf-ocr-rl-dataset"
+
+
+def load_hf_dataset(split: str = "train", max_samples: int | None = None):
+    """Load the dataset from HuggingFace Hub.
+
+    Args:
+        split: "train" or "test"
+        max_samples: cap the number of samples (None = all)
+
+    Returns:
+        HuggingFace Dataset with columns: image, markdown, language, source, doc_id, page_num
+    """
+    from datasets import load_dataset
+
+    ds = load_dataset(HF_DATASET_REPO, split=split)
+    if max_samples and len(ds) > max_samples:
+        ds = ds.select(range(max_samples))
+    return ds
+
 
 class PDFMarkdownDataset(Dataset):
-    """Dataset of PDF image -> markdown pairs for VLM training."""
+    """Dataset of PDF image -> markdown pairs for VLM training.
 
-    def __init__(self, data_dir: str, split: str = "train", max_samples: int | None = None):
-        self.data_dir = Path(data_dir)
+    Loads from local data_dir if available, otherwise falls back to HuggingFace Hub.
+    """
+
+    def __init__(self, data_dir: str | None = None, split: str = "train", max_samples: int | None = None):
         self.pairs = []
+        self._hf_dataset = None
 
-        meta_path = self.data_dir / "dataset_meta.json"
-        if meta_path.exists():
-            meta = json.loads(meta_path.read_text())
-            # Load corresponding markdown content
-            for entry in meta:
-                img_path = entry["image_path"]
-                md_source = entry["source"]
-                if Path(img_path).exists() and Path(md_source).exists():
-                    self.pairs.append({
-                        "image_path": img_path,
-                        "markdown_path": md_source,
-                        "language": entry.get("language", "en"),
-                        "page_start_char": entry.get("page_start_char", 0),
-                        "page_end_char": entry.get("page_end_char"),
-                    })
+        # Try local data first
+        if data_dir and Path(data_dir).exists():
+            self._load_local(data_dir, split)
+        else:
+            self._load_from_hub(split)
+
+        if max_samples:
+            if self._hf_dataset is not None:
+                if len(self._hf_dataset) > max_samples:
+                    self._hf_dataset = self._hf_dataset.select(range(max_samples))
+            else:
+                self.pairs = self.pairs[:max_samples]
+
+    def _load_local(self, data_dir: str, split: str):
+        meta_path = Path(data_dir) / "dataset_meta.json"
+        if not meta_path.exists():
+            self._load_from_hub(split)
+            return
+
+        meta = json.loads(meta_path.read_text())
+        for entry in meta:
+            img_path = entry["image_path"]
+            md_source = entry["source"]
+            if Path(img_path).exists() and Path(md_source).exists():
+                self.pairs.append({
+                    "image_path": img_path,
+                    "markdown_path": md_source,
+                    "language": entry.get("language", "en"),
+                    "page_start_char": entry.get("page_start_char", 0),
+                    "page_end_char": entry.get("page_end_char"),
+                })
 
         # Stratified split: 90% train / 10% test per language
         by_lang: dict[str, list] = {}
@@ -44,13 +96,24 @@ class PDFMarkdownDataset(Dataset):
                 split_pairs.extend(entries[split_idx:])
         self.pairs = split_pairs
 
-        if max_samples:
-            self.pairs = self.pairs[:max_samples]
+    def _load_from_hub(self, split: str):
+        self._hf_dataset = load_hf_dataset(split=split)
+        print(f"Loaded {len(self._hf_dataset)} samples from HuggingFace Hub ({HF_DATASET_REPO})")
 
     def __len__(self):
+        if self._hf_dataset is not None:
+            return len(self._hf_dataset)
         return len(self.pairs)
 
     def __getitem__(self, idx):
+        if self._hf_dataset is not None:
+            row = self._hf_dataset[idx]
+            return {
+                "image": row["image"].convert("RGB") if not isinstance(row["image"], Image.Image) else row["image"],
+                "markdown": row["markdown"],
+                "language": row["language"],
+            }
+
         pair = self.pairs[idx]
         image = Image.open(pair["image_path"]).convert("RGB")
         md_full = Path(pair["markdown_path"]).read_text(encoding="utf-8")
@@ -62,52 +125,6 @@ class PDFMarkdownDataset(Dataset):
             "markdown": markdown,
             "language": pair["language"],
         }
-
-
-def create_hf_dataset(data_dir: str, output_path: str | None = None):
-    """Create a HuggingFace Dataset from rendered PDF-markdown pairs."""
-    try:
-        from datasets import Dataset as HFDataset, Features, Image as HFImage, Value
-
-        dataset_path = Path(data_dir)
-        meta_path = dataset_path / "dataset_meta.json"
-
-        if not meta_path.exists():
-            raise FileNotFoundError(f"No dataset metadata found at {meta_path}")
-
-        meta = json.loads(meta_path.read_text())
-
-        records = []
-        for entry in meta:
-            img_path = entry["image_path"]
-            md_source = entry["source"]
-            if Path(img_path).exists() and Path(md_source).exists():
-                md_full = Path(md_source).read_text(encoding="utf-8")
-                start = entry.get("page_start_char", 0)
-                end = entry.get("page_end_char", len(md_full))
-                records.append({
-                    "image": img_path,
-                    "markdown": md_full[start:end],
-                    "language": entry.get("language", "en"),
-                })
-
-        features = Features({
-            "image": HFImage(),
-            "markdown": Value("string"),
-            "language": Value("string"),
-        })
-
-        ds = HFDataset.from_list(records, features=features)
-
-        if output_path:
-            ds.save_to_disk(output_path)
-            print(f"Saved dataset to {output_path}")
-
-        return ds
-
-    except ImportError:
-        print("datasets library not available, returning raw pairs")
-        return None
 
 
 def format_prompt(language: str = "en") -> str:
