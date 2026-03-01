@@ -28,6 +28,8 @@ data/pdfs/
 
 # Results
 results/
+!results/RESULTS.md
+!results/eval_final/
 checkpoints/
 wandb/
 
