@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 
-REPO_ID = "Parassharmaa/pdf-ocr-rl-dataset"
+REPO_ID = "blazeofchi/pdf-ocr-rl-dataset"
 
 
 def get_hf_token() -> str:
