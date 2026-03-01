@@ -7,8 +7,8 @@ model:
   load_in_4bit: true
 
 lora:
-  r: 16
-  alpha: 32
+  r: 32
+  alpha: 64
   dropout: 0.0
   target_modules: "all"
 
