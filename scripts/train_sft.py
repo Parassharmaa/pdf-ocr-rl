@@ -24,20 +24,17 @@ def load_config(config_path: str) -> dict:
         return yaml.safe_load(f)
 
 
-def build_sft_dataset(config: dict):
-    """Build dataset in Unsloth Vision SFT format.
+def build_sft_dataset(config: dict) -> list[dict]:
+    """Build dataset as list of conversation dicts for Unsloth Vision SFT.
 
-    Format: list of conversation dicts with image content.
+    Returns list of:
     {
         "messages": [
-            {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": "..."}]},
+            {"role": "user", "content": [{"type": "image", "image": PIL.Image}, {"type": "text", "text": "..."}]},
             {"role": "assistant", "content": [{"type": "text", "text": "markdown output"}]}
-        ],
-        "images": [PIL.Image]
+        ]
     }
     """
-    from datasets import Dataset
-
     data_dir = Path(config["data"]["train_dir"])
     meta_path = data_dir / "dataset_meta.json"
     languages = config["data"].get("languages", ["en", "ja"])
@@ -55,13 +52,17 @@ def build_sft_dataset(config: dict):
             lang = row.get("language", "en")
             if lang not in languages:
                 continue
-            prompt_text = format_prompt(lang)
-            messages = [
-                {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt_text}]},
-                {"role": "assistant", "content": [{"type": "text", "text": row["markdown"]}]},
-            ]
             img = row["image"].convert("RGB") if hasattr(row["image"], "convert") else row["image"]
-            records.append({"messages": messages, "images": [img]})
+            prompt_text = format_prompt(lang)
+            records.append({"messages": [
+                {"role": "user", "content": [
+                    {"type": "image", "image": img},
+                    {"type": "text", "text": prompt_text},
+                ]},
+                {"role": "assistant", "content": [
+                    {"type": "text", "text": row["markdown"]},
+                ]},
+            ]})
             if len(records) >= max_samples:
                 break
     else:
@@ -85,18 +86,21 @@ def build_sft_dataset(config: dict):
             end = entry.get("page_end_char", len(md_full))
             md_content = md_full[start:end]
             prompt_text = format_prompt(lang)
-            messages = [
-                {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt_text}]},
-                {"role": "assistant", "content": [{"type": "text", "text": md_content}]},
-            ]
-            records.append({"messages": messages, "images": [Image.open(img_path).convert("RGB")]})
+            records.append({"messages": [
+                {"role": "user", "content": [
+                    {"type": "image", "image": Image.open(img_path).convert("RGB")},
+                    {"type": "text", "text": prompt_text},
+                ]},
+                {"role": "assistant", "content": [
+                    {"type": "text", "text": md_content},
+                ]},
+            ]})
 
             if len(records) >= max_samples:
                 break
 
-    ds = Dataset.from_list(records)
-    print(f"Loaded {len(ds)} SFT samples" + (" (from HuggingFace Hub)" if use_hub else " (from local)"))
-    return ds
+    print(f"Loaded {len(records)} SFT samples" + (" (from HuggingFace Hub)" if use_hub else " (from local)"))
+    return records
 
 
 def main():
@@ -147,10 +151,11 @@ def main():
     print("\nSetting up SFT trainer...")
     from trl import SFTConfig, SFTTrainer
     from unsloth import is_bf16_supported
+    from unsloth.trainer import UnslothVisionDataCollator
 
     sft_config = config.get("sft", {})
     max_steps = args.max_steps or sft_config.get("max_steps", 100)
-    output_dir = config["output"]["dir"].replace("grpo_", "sft_")
+    output_dir = config["output"]["dir"].replace("qwen3vl2b", "sft_qwen3vl2b")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     training_args = SFTConfig(
@@ -159,7 +164,7 @@ def main():
         gradient_accumulation_steps=4,
         warmup_ratio=0.1,
         max_steps=max_steps,
-        learning_rate=2e-5,
+        learning_rate=sft_config.get("learning_rate", 2e-5),
         bf16=is_bf16_supported(),
         fp16=not is_bf16_supported(),
         optim="adamw_8bit",
@@ -178,8 +183,9 @@ def main():
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
-        args=training_args,
+        data_collator=UnslothVisionDataCollator(model, tokenizer),
         train_dataset=dataset,
+        args=training_args,
     )
 
     print(f"\nStarting SFT training ({max_steps} steps)...")
