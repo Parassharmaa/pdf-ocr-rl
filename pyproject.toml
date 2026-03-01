@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "GRPO fine-tuning of multimodal VLM for PDF-to-markdown conversion"
 requires-python = ">=3.10"
 dependencies = [
-    "torch>=2.0",
+    "torch==2.6.0",
+    "torchvision==0.21.0",
     "transformers>=4.45",
     "datasets>=2.18",
     "pillow>=10.0",
@@ -13,6 +14,7 @@ dependencies = [
     "requests>=2.31",
     "tqdm>=4.65",
     "Levenshtein>=0.25",
+    "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -22,18 +24,19 @@ dev = [
     "ruff>=0.1",
 ]
 train = [
-    "unsloth",
     "trl>=0.12",
     "peft>=0.13",
     "bitsandbytes>=0.43",
-    "vllm>=0.6",
-    "wandb>=0.15",
+    "qwen-vl-utils>=0.0.2",
 ]
 data = [
     "weasyprint>=60.0",
     "markdown>=3.5",
     "pymupdf>=1.24",
     "pdf2image>=1.17",
+]
+hub = [
+    "huggingface-hub>=0.20",
 ]
 
 [build-system]
